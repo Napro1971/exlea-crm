@@ -278,8 +278,9 @@ code{font-family:monospace;font-size:11px;background:var(--bg2);padding:2px 5px;
     </div>
     <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:.85rem">Email recenti da contatti CRM</div>
     <div id="gmail-messages-list"></div>
-    <div style="text-align:center;margin-top:1rem">
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:1rem;flex-wrap:wrap">
       <button class="btn btn-g" onclick="loadGmailMessages()">Aggiorna email</button>
+      <button class="btn" style="border-color:#185FA5;color:#185FA5;background:#E6F1FB" onclick="openGoogleContactsImport()">↓ Importa da Google Contacts</button>
     </div>
   </div>
 
@@ -355,6 +356,18 @@ code{font-family:monospace;font-size:11px;background:var(--bg2);padding:2px 5px;
     <div id="import-prev" style="font-size:13px;color:var(--text);margin-top:8px"></div>
   </div>
   <div class="pf"><button class="btn" onclick="closeAll()">Annulla</button><button class="btn btn-g" id="confirm-imp" style="display:none" onclick="doImport()">Importa</button></div>
+</div>
+</div>
+
+<div class="ov" id="ov-gcontacts">
+<div class="panel" style="max-width:540px">
+  <div class="ph"><h2>Importa da Google Contacts</h2><button class="px" onclick="closeAll()">×</button></div>
+  <div class="pb" id="gcontacts-body" style="padding:0 1.4rem 1rem"></div>
+  <div class="pf">
+    <button class="btn" onclick="closeAll()">Chiudi</button>
+    <span id="gcontacts-count" style="font-size:12px;color:var(--text2);align-self:center;margin-left:auto;margin-right:8px"></span>
+    <button class="btn btn-g" id="gcontacts-import-btn" style="display:none" onclick="doGoogleContactsImport()">Importa selezionati</button>
+  </div>
 </div>
 </div>
 
@@ -631,8 +644,8 @@ function startGmailOAuth(){
   const cid=document.getElementById('gmail-client-id').value.trim();
   if(!cid){showGmailError('Incolla prima il Client ID Google.');return;}
   localStorage.setItem('exlea_gmail_cid',cid);
-  const redirectUri=window.location.origin+window.location.pathname;
-  const scope='https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile';
+  const redirectUri='https://napro1971.github.io/exlea-crm/exlea_crm.html';
+  const scope='https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/contacts.readonly';
   const url=`https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(cid)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}&prompt=select_account`;
   const popup=window.open(url,'gmail_oauth','width=500,height=620,left=200,top=100');
   const timer=setInterval(()=>{
@@ -744,10 +757,12 @@ function showGmailDemo(){
 
 // Ripristina sessione Gmail se già loggato
 window.addEventListener('load',()=>{
+  const DEFAULT_CID='684643787946-om46sje21j2ef0iii4an0jb15mebn9kc.apps.googleusercontent.com';
   const savedToken=localStorage.getItem('exlea_gmail_token');
-  const savedCid=localStorage.getItem('exlea_gmail_cid');
-  if(savedCid)document.getElementById('gmail-client-id').value=savedCid;
-  if(savedToken){gmailToken=savedToken;}
+  const savedCid=localStorage.getItem('exlea_gmail_cid')||DEFAULT_CID;
+  localStorage.setItem('exlea_gmail_cid',savedCid);
+  document.getElementById('gmail-client-id').value=savedCid;
+  if(savedToken){gmailToken=savedToken;fetchGmailUserInfo();}
 });
 
 function openImport(){pendingImport=[];document.getElementById('import-prev').innerHTML='';document.getElementById('confirm-imp').style.display='none';document.getElementById('ov-import').classList.add('open');}
@@ -773,6 +788,90 @@ function exportCSV(){
 }
 
 function closeAll(){document.querySelectorAll('.ov').forEach(o=>o.classList.remove('open'));}
+
+// ── GOOGLE CONTACTS IMPORT ──
+let gContactsPending=[],gContactsSelected=new Set();
+
+function openGoogleContactsImport(){
+  if(!gmailToken){alert('Prima accedi con Google nella tab Gmail.');return;}
+  gContactsPending=[];gContactsSelected=new Set();
+  document.getElementById('gcontacts-body').innerHTML='<div style="text-align:center;color:var(--text2);font-size:13px;padding:2rem">Caricamento contatti Google...</div>';
+  document.getElementById('gcontacts-import-btn').style.display='none';
+  document.getElementById('gcontacts-count').textContent='';
+  document.getElementById('ov-gcontacts').classList.add('open');
+  fetch('https://people.googleapis.com/v1/people/me/connections?personFields=names,emailAddresses,phoneNumbers,organizations,biographies&pageSize=500&sortOrder=FIRST_NAME_ASCENDING',
+    {headers:{Authorization:'Bearer '+gmailToken}})
+  .then(r=>{if(!r.ok)throw new Error(r.status);return r.json();})
+  .then(data=>{
+    const conns=data.connections||[];
+    const existingEmails=new Set(state.contacts.map(c=>c.email).filter(Boolean).map(e=>e.toLowerCase()));
+    gContactsPending=conns.map(p=>{
+      const name=p.names?.[0];
+      const email=p.emailAddresses?.[0]?.value||'';
+      const phone=p.phoneNumbers?.[0]?.value||'';
+      const org=p.organizations?.[0]?.name||'';
+      const role=p.organizations?.[0]?.title||'';
+      const note=p.biographies?.[0]?.value||'';
+      return{nome:name?.givenName||'',cognome:name?.familyName||'',email,phone,org,role,note,inCrm:!!(email&&existingEmails.has(email.toLowerCase()))};
+    }).filter(c=>c.nome||c.cognome);
+    if(!gContactsPending.length){document.getElementById('gcontacts-body').innerHTML='<div style="text-align:center;color:var(--text2);font-size:13px;padding:2rem">Nessun contatto trovato.</div>';return;}
+    gContactsPending.forEach((c,i)=>{if(!c.inCrm)gContactsSelected.add(i);});
+    renderGcontactsList();
+  })
+  .catch(e=>{
+    document.getElementById('gcontacts-body').innerHTML='<div style="color:#A32D2D;font-size:13px;padding:1rem;background:#FCEBEB;border-radius:var(--rad);margin:1rem 0">Errore nel caricamento. Assicurati che la <strong>People API</strong> sia abilitata in Google Cloud Console → Libreria API → cerca "People API".</div>';
+  });
+}
+
+function renderGcontactsList(){
+  const sel=gContactsSelected.size;
+  document.getElementById('gcontacts-count').textContent=sel+' selezionati';
+  document.getElementById('gcontacts-import-btn').style.display=sel?'inline-flex':'none';
+  document.getElementById('gcontacts-body').innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 0 .75rem">
+      <span style="font-size:12px;color:var(--text2)">${gContactsPending.length} contatti trovati in Google Contacts</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn" style="font-size:11px" onclick="selAllGc(true)">Tutti</button>
+        <button class="btn" style="font-size:11px" onclick="selAllGc(false)">Nessuno</button>
+      </div>
+    </div>
+    <div style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-bottom:.5rem">
+      ${gContactsPending.map((c,i)=>{
+        const s=gContactsSelected.has(i);
+        return`<div style="display:flex;align-items:center;gap:10px;padding:.6rem .85rem;border:1px solid ${s?'var(--teal)':'var(--border)'};border-radius:var(--rad);background:${s?'var(--teal-l)':'var(--bg)'};cursor:${c.inCrm?'default':'pointer'};opacity:${c.inCrm?.45:1};transition:all .12s" ${c.inCrm?'':'onclick="toggleGc('+i+')"'}>
+          <div style="width:34px;height:34px;border-radius:50%;background:#E6F1FB;color:#185FA5;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;flex-shrink:0">${((c.nome||c.cognome||'?')[0]).toUpperCase()}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:500;color:var(--text);display:flex;align-items:center;gap:6px">${c.nome} ${c.cognome} ${c.inCrm?'<span style="font-size:11px;background:#E1F5EE;color:#0F6E56;padding:1px 7px;border-radius:99px">già nel CRM</span>':''}</div>
+            <div style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${[c.email,c.org,c.phone].filter(Boolean).join(' · ')}</div>
+          </div>
+          ${!c.inCrm?`<div style="width:18px;height:18px;border-radius:4px;border:1.5px solid ${s?'var(--teal)':'var(--border2)'};background:${s?'var(--teal)':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .12s">${s?'<span style="color:white;font-size:13px;line-height:1">✓</span>':''}</div>`:''}
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function toggleGc(i){if(gContactsSelected.has(i))gContactsSelected.delete(i);else gContactsSelected.add(i);renderGcontactsList();}
+function selAllGc(v){gContactsPending.forEach((c,i)=>{if(!c.inCrm){if(v)gContactsSelected.add(i);else gContactsSelected.delete(i);}});renderGcontactsList();}
+
+function doGoogleContactsImport(){
+  const toImport=[...gContactsSelected].map(i=>gContactsPending[i]);
+  toImport.forEach(c=>{
+    state.contacts.push({
+      id:Date.now()+Math.random(),
+      nome:c.nome,cognome:c.cognome,
+      cat:'Lead',status:'tiepido',
+      org:c.org||'',ruolo:c.role||'',
+      email:c.email||'',tel:c.phone||'',
+      citta:'',web:'',tags:[],
+      note:c.note||'',
+      date:new Date().toISOString().slice(0,10),
+      activities:[]
+    });
+  });
+  saveState();closeAll();
+  if(activeView==='contacts')renderContacts();else renderDashboard();
+  alert(toImport.length+' contatti importati con successo da Google Contacts!');
+}
 document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeAll();}));
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll();});
 
