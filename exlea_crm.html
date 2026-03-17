@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Exlea CRM</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f5f5f3;--bg3:#efefec;
+  --text:#1a1a18;--text2:#6b6b67;--text3:#9b9b97;
+  --border:rgba(0,0,0,.1);--border2:rgba(0,0,0,.18);
+  --teal:#1D9E75;--teal-l:#E1F5EE;--teal-d:#0F6E56;
+  --rad:8px;--rad-l:12px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1c1c1a;--bg2:#252523;--bg3:#2e2e2b;
+  --text:#f0f0ec;--text2:#a0a09a;--text3:#6a6a65;
+  --border:rgba(255,255,255,.1);--border2:rgba(255,255,255,.18);
+  --teal-l:#0a3d2a;--teal-d:#5fcba0;
+}}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg3);color:var(--text);min-height:100vh}
+.shell{max-width:1200px;margin:0 auto;padding:0 1rem 2rem}
+
+/* NAV */
+.navbar{display:flex;align-items:center;gap:0;border-bottom:1px solid var(--border);background:var(--bg);padding:0 1.5rem;position:sticky;top:0;z-index:100;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.nav-brand{font-size:14px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:7px;margin-right:20px;padding:14px 0}
+.brand-pip{width:9px;height:9px;border-radius:50%;background:var(--teal)}
+.nav-tab{font-size:13px;padding:14px 14px 13px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;white-space:nowrap;transition:color .15s}
+.nav-tab:hover{color:var(--text)}
+.nav-tab.active{color:var(--teal);border-bottom-color:var(--teal);font-weight:500}
+.nav-right{margin-left:auto;display:flex;gap:6px;align-items:center}
+.btn{font-size:12px;padding:6px 13px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;transition:background .12s}
+.btn:hover{background:var(--bg2)}
+.btn-g{background:var(--teal-l);border-color:var(--teal);color:var(--teal-d);font-weight:500}
+.btn-g:hover{filter:brightness(.95)}
+.saved{font-size:11px;color:var(--teal);background:var(--teal-l);padding:3px 9px;border-radius:99px;display:none}
+
+/* MAIN */
+.main{padding:1.5rem 0}
+.view{display:none}.view.active{display:block}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1.5rem}
+.kpi{background:var(--bg2);border-radius:var(--rad);padding:.9rem 1.1rem}
+.kpi-label{font-size:11px;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+.kpi-val{font-size:28px;font-weight:600;color:var(--text);line-height:1}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:3px}
+
+/* CHARTS */
+.charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:1.5rem}
+.chart-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--rad-l);padding:1.1rem 1.3rem}
+.chart-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:1rem}
+.chart-wrap{position:relative;height:190px}
+.chart-wrap-wide{position:relative;height:160px}
+
+/* UPCOMING */
+.section-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--rad-l);padding:1.1rem 1.3rem;margin-bottom:1rem}
+.section-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:.85rem}
+.rem-row{display:flex;align-items:center;gap:12px;padding:.55rem 0;border-bottom:1px solid var(--border)}
+.rem-row:last-child{border-bottom:none}
+.rem-badge{font-size:11px;padding:3px 9px;border-radius:99px;font-weight:500;white-space:nowrap}
+.overdue{background:#FCEBEB;color:#A32D2D}
+.today-b{background:#FAEEDA;color:#854F0B}
+.future-b{background:#E1F5EE;color:#0F6E56}
+.rem-info{flex:1;min-width:0}
+.rem-title{font-size:13px;color:var(--text)}
+.rem-contact{font-size:11px;color:var(--text2)}
+.done-btn{font-size:11px;padding:3px 9px;border:1px solid var(--border);border-radius:var(--rad);background:transparent;color:var(--text2);cursor:pointer}
+.done-btn:hover{background:var(--bg2)}
+
+/* CONTACTS */
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:1rem}
+.toolbar input[type=text]{flex:1;min-width:180px;font-size:13px;padding:7px 12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);outline:none}
+.toolbar input[type=text]:focus{border-color:var(--teal)}
+.toolbar select{font-size:13px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);cursor:pointer}
+.cat-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem}
+.ctab{font-size:12px;padding:5px 13px;border-radius:99px;border:1px solid var(--border);cursor:pointer;background:var(--bg);color:var(--text2);transition:all .12s}
+.ctab:hover{border-color:var(--border2)}
+.ctab.active{font-weight:500;border-color:transparent}
+.ctab[data-c="Tutti"].active{background:#E1F5EE;color:#0F6E56}
+.ctab[data-c="Lead"].active{background:#FAEEDA;color:#854F0B}
+.ctab[data-c="Cliente"].active{background:#E1F5EE;color:#0F6E56}
+.ctab[data-c="Influencer"].active{background:#EEEDFE;color:#3C3489}
+.ctab[data-c="Dirigente scolastico"].active{background:#E6F1FB;color:#0C447C}
+.ctab[data-c="Professore"].active{background:#EAF3DE;color:#3B6D11}
+.ctab[data-c="Dirigente pubblico"].active{background:#FAECE7;color:#993C1D}
+.ctab[data-c="Altro"].active{background:#F1EFE8;color:#5F5E5A}
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:13px}
+.card{background:var(--bg);border:1px solid var(--border);border-radius:var(--rad-l);padding:1.1rem 1.3rem;display:flex;flex-direction:column;gap:10px;transition:box-shadow .15s}
+.card:hover{box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.card-head{display:flex;align-items:center;gap:11px}
+.av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;flex-shrink:0}
+.cname{font-size:14px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crole{font-size:12px;color:var(--text2)}
+.badge{font-size:11px;padding:3px 9px;border-radius:99px;font-weight:500;white-space:nowrap}
+.b-Lead{background:#FAEEDA;color:#854F0B}
+.b-Cliente{background:#E1F5EE;color:#0F6E56}
+.b-Influencer{background:#EEEDFE;color:#3C3489}
+.b-Dirigente-scolastico{background:#E6F1FB;color:#0C447C}
+.b-Professore{background:#EAF3DE;color:#3B6D11}
+.b-Dirigente-pubblico{background:#FAECE7;color:#993C1D}
+.b-Altro{background:#F1EFE8;color:#5F5E5A}
+.cmeta{font-size:12px;color:var(--text2);display:flex;flex-direction:column;gap:5px;border-top:1px solid var(--border);padding-top:10px}
+.crow{display:flex;align-items:flex-start;gap:7px}
+.lbl{color:var(--text3);min-width:52px;flex-shrink:0}
+.val{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sdot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:3px;flex-shrink:0;vertical-align:middle}
+.s-caldo{background:#1D9E75}.s-tiepido{background:#EF9F27}.s-freddo{background:#D85A30}.s-attivo{background:#1D9E75}.s-inattivo{background:#888780}
+.tag-wrap{display:flex;gap:4px;flex-wrap:wrap}
+.tpill{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--bg2);color:var(--text2);border:1px solid var(--border)}
+.cactions{display:flex;gap:5px;border-top:1px solid var(--border);padding-top:9px;flex-wrap:wrap}
+.ca{flex:1;font-size:11px;padding:5px 4px;border:1px solid var(--border);border-radius:var(--rad);background:transparent;color:var(--text2);cursor:pointer;text-align:center;min-width:55px;transition:background .12s}
+.ca:hover{background:var(--bg2);color:var(--text)}
+.ca.gmail-btn{color:#185FA5;border-color:#B5D4F4;background:#E6F1FB}
+.ca.gmail-btn:hover{background:#B5D4F4}
+.empty-state{text-align:center;color:var(--text2);font-size:13px;padding:3rem;grid-column:1/-1}
+
+/* REMINDERS */
+.rem-toolbar{display:flex;gap:8px;align-items:center;margin-bottom:1rem;flex-wrap:wrap}
+.rem-toolbar select{font-size:13px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);cursor:pointer}
+.rem-item{display:flex;align-items:center;gap:13px;padding:.9rem 1.2rem;border:1px solid var(--border);border-radius:var(--rad-l);margin-bottom:9px;background:var(--bg);transition:box-shadow .15s}
+.rem-item:hover{box-shadow:0 1px 6px rgba(0,0,0,.07)}
+.rem-item.is-done{opacity:.4}
+.rem-item.is-overdue{border-color:#F7C1C1;background:#FCEBEB}
+.rem-item.is-today{border-color:#FAC775;background:#FAEEDA}
+.rem-left{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:48px}
+.rem-day{font-size:20px;font-weight:600;color:var(--text)}
+.rem-mon{font-size:11px;color:var(--text2);text-transform:uppercase}
+.rem-body{flex:1;min-width:0}
+.rem-ttl{font-size:13px;font-weight:500;color:var(--text)}
+.rem-cname{font-size:12px;color:var(--text2);margin-top:2px}
+.rem-note{font-size:12px;color:var(--text2);margin-top:3px}
+.rem-actions{display:flex;gap:6px}
+
+/* GMAIL */
+.gmail-info{background:#E6F1FB;border:1px solid #B5D4F4;border-radius:var(--rad-l);padding:1.1rem 1.3rem;font-size:13px;color:#0C447C;line-height:1.7;margin-bottom:1.25rem}
+.gmail-steps{display:flex;flex-direction:column;gap:9px;margin-top:.85rem}
+.gmail-step{display:flex;gap:10px;align-items:flex-start}
+.step-num{width:22px;height:22px;border-radius:50%;background:#185FA5;color:#E6F1FB;font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:600;margin-top:1px}
+.gmail-input-row{display:flex;gap:8px;margin-bottom:1.25rem}
+.gmail-input-row input{flex:1;font-size:13px;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);outline:none}
+.gmail-input-row input:focus{border-color:var(--teal)}
+.gmail-status{font-size:13px;color:var(--text2);text-align:center;padding:2rem}
+.demo-email{padding:.85rem 0;border-bottom:1px solid var(--border)}
+.demo-email:last-child{border-bottom:none}
+.demo-from{font-size:13px;font-weight:500;color:var(--text)}
+.demo-subj{font-size:13px;color:var(--text)}
+.demo-snip{font-size:12px;color:var(--text2);margin-top:2px}
+
+/* OVERLAYS */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:500;align-items:center;justify-content:center;padding:1rem}
+.ov.open{display:flex}
+.panel{background:var(--bg);border:1px solid var(--border2);border-radius:var(--rad-l);width:100%;max-width:460px;max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.18)}
+.ph{display:flex;align-items:center;justify-content:space-between;padding:1.2rem 1.4rem 1rem;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:1}
+.ph h2{font-size:15px;font-weight:600;color:var(--text)}
+.px{background:none;border:none;font-size:22px;color:var(--text2);cursor:pointer;line-height:1;padding:0 4px}
+.pb{padding:1.1rem 1.4rem;display:flex;flex-direction:column;gap:12px}
+.pf{display:flex;gap:8px;justify-content:flex-end;padding:.9rem 1.4rem;border-top:1px solid var(--border)}
+.panel label{font-size:12px;color:var(--text2);display:block;margin-bottom:4px;font-weight:500}
+.panel input[type=text],.panel input[type=email],.panel input[type=tel],.panel input[type=date],.panel input[type=time],.panel select,.panel textarea{width:100%;font-size:13px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);outline:none;font-family:inherit}
+.panel input:focus,.panel select:focus,.panel textarea:focus{border-color:var(--teal)}
+.panel textarea{resize:vertical;min-height:70px}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tags-inp-wrap{display:flex;gap:6px;flex-wrap:wrap;padding:6px 8px;border:1px solid var(--border2);border-radius:var(--rad);min-height:38px;align-items:center;cursor:text;background:var(--bg)}
+.tchip{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--teal-l);color:var(--teal-d);display:flex;align-items:center;gap:5px}
+.tchip button{background:none;border:none;cursor:pointer;color:var(--teal-d);font-size:14px;line-height:1;padding:0}
+.tag-new{border:none;outline:none;background:none;font-size:12px;color:var(--text);flex:1;min-width:90px;font-family:inherit}
+.act-list{display:flex;flex-direction:column}
+.act-item{padding:.75rem 0;border-bottom:1px solid var(--border);display:flex;gap:10px}
+.act-item:last-child{border-bottom:none}
+.aico{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.aico.email{background:#E6F1FB;color:#185FA5}
+.aico.call{background:#E1F5EE;color:#0F6E56}
+.aico.note{background:#FAEEDA;color:#854F0B}
+.aico.meeting{background:#EEEDFE;color:#534AB7}
+.abody{flex:1;min-width:0}
+.atitle{font-size:13px;color:var(--text);font-weight:500}
+.atime{font-size:11px;color:var(--text2);margin-top:2px}
+.adesc{font-size:12px;color:var(--text2);margin-top:3px}
+.act-type-row{display:flex;gap:6px;flex-wrap:wrap}
+.atbtn{font-size:12px;padding:5px 12px;border:1px solid var(--border);border-radius:99px;background:var(--bg);color:var(--text2);cursor:pointer;transition:all .12s}
+.atbtn:hover{border-color:var(--teal)}
+.atbtn.sel{background:var(--teal-l);color:var(--teal-d);border-color:var(--teal);font-weight:500}
+.import-zone{border:2px dashed var(--border2);border-radius:var(--rad-l);padding:1.8rem;text-align:center;cursor:pointer;color:var(--text2);font-size:13px;transition:background .12s}
+.import-zone:hover{background:var(--bg2)}
+code{font-family:monospace;font-size:11px;background:var(--bg2);padding:2px 5px;border-radius:4px;color:var(--text)}
+</style>
+</head>
+<body>
+<div class="shell">
+<div class="navbar">
+  <div class="nav-brand"><div class="brand-pip"></div>Exlea CRM</div>
+  <div class="nav-tab active" onclick="goView('dashboard')">Dashboard</div>
+  <div class="nav-tab" onclick="goView('contacts')">Contatti <span id="cnt-badge" style="font-size:11px;opacity:.6"></span></div>
+  <div class="nav-tab" onclick="goView('reminders')">Promemoria <span id="rem-badge" style="font-size:11px"></span></div>
+  <div class="nav-tab" onclick="goView('gmail')">Gmail</div>
+  <div class="nav-right">
+    <span class="saved" id="saved-badge">✓ Salvato</span>
+    <button class="btn" onclick="exportCSV()">↓ Esporta CSV</button>
+    <button class="btn" onclick="openImport()">↑ Importa CSV</button>
+    <button class="btn btn-g" onclick="openAdd()">+ Contatto</button>
+  </div>
+</div>
+
+<div class="main">
+<!-- DASHBOARD -->
+<div class="view active" id="view-dashboard">
+  <div class="kpi-grid" id="kpi-grid"></div>
+  <div class="charts-grid">
+    <div class="chart-card"><div class="chart-title">Contatti per categoria</div><div class="chart-wrap"><canvas id="chart-cat"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Distribuzione stato lead</div><div class="chart-wrap"><canvas id="chart-status"></canvas></div></div>
+    <div class="chart-card" style="grid-column:1/-1"><div class="chart-title">Attività registrate per mese (anno corrente)</div><div class="chart-wrap-wide"><canvas id="chart-act"></canvas></div></div>
+  </div>
+  <div class="section-card">
+    <div class="section-title">Prossimi promemoria</div>
+    <div id="dash-reminders"></div>
+  </div>
+</div>
+
+<!-- CONTACTS -->
+<div class="view" id="view-contacts">
+  <div class="toolbar">
+    <input type="text" id="search" placeholder="Cerca per nome, ente, email, tag..." oninput="renderContacts()" />
+    <select id="sort" onchange="renderContacts()">
+      <option value="name">Nome A-Z</option>
+      <option value="recent">Più recenti</option>
+      <option value="status">Stato</option>
+    </select>
+  </div>
+  <div class="cat-row" id="cat-row"></div>
+  <div class="cards-grid" id="cards-grid"></div>
+</div>
+
+<!-- REMINDERS -->
+<div class="view" id="view-reminders">
+  <div class="rem-toolbar">
+    <select id="rem-filter" onchange="renderReminders()">
+      <option value="all">Tutti i promemoria</option>
+      <option value="pending">In attesa</option>
+      <option value="overdue">Scaduti</option>
+      <option value="done">Completati</option>
+    </select>
+    <button class="btn btn-g" onclick="openAddRem(null)">+ Nuovo promemoria</button>
+  </div>
+  <div id="rem-list"></div>
+</div>
+
+<!-- GMAIL -->
+<div class="view" id="view-gmail">
+  <div id="gmail-step-1" style="display:block">
+    <div class="gmail-info">
+      <strong>Collega Gmail in 2 passi</strong><br><br>
+      <strong>Passo 1</strong> — Incolla il tuo Client ID Google qui sotto.<br>
+      Lo trovi su <strong>console.cloud.google.com</strong> → API e servizi → Credenziali → il tuo ID client OAuth.<br><br>
+      <strong>Passo 2</strong> — Clicca "Accedi con Google" e completa il login nel popup.
+    </div>
+    <div class="gmail-input-row">
+      <input id="gmail-client-id" type="text" placeholder="Incolla qui il Client ID (es. 123456789-abc...apps.googleusercontent.com)" />
+      <button class="btn btn-g" id="gmail-connect-btn" onclick="startGmailOAuth()">Accedi con Google</button>
+    </div>
+    <div id="gmail-error" style="display:none;background:#FCEBEB;border:1px solid #F7C1C1;border-radius:var(--rad);padding:.85rem 1rem;font-size:13px;color:#A32D2D;margin-bottom:1rem"></div>
+    <div style="text-align:center;padding:1rem 0;border-top:1px solid var(--border)">
+      <span style="font-size:12px;color:var(--text2)">Non hai ancora il Client ID?</span>
+      <button class="btn" style="margin-left:8px" onclick="showGmailDemo()">Prova la modalità demo</button>
+    </div>
+  </div>
+
+  <div id="gmail-step-connected" style="display:none">
+    <div style="background:#E1F5EE;border:1px solid #9FE1CB;border-radius:var(--rad-l);padding:1rem 1.3rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:12px">
+      <div id="gmail-user-avatar" style="width:38px;height:38px;border-radius:50%;background:#1D9E75;color:#E1F5EE;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:15px;flex-shrink:0"></div>
+      <div>
+        <div style="font-size:14px;font-weight:500;color:#0F6E56" id="gmail-user-name"></div>
+        <div style="font-size:12px;color:#1D9E75" id="gmail-user-email"></div>
+      </div>
+      <button class="btn" style="margin-left:auto" onclick="gmailLogout()">Disconnetti</button>
+    </div>
+    <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:.85rem">Email recenti da contatti CRM</div>
+    <div id="gmail-messages-list"></div>
+    <div style="text-align:center;margin-top:1rem">
+      <button class="btn btn-g" onclick="loadGmailMessages()">Aggiorna email</button>
+    </div>
+  </div>
+
+  <div id="gmail-demo-list" style="margin-top:1rem"></div>
+</div>
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- OVERLAYS -->
+<div class="ov" id="ov-add">
+<div class="panel">
+  <div class="ph"><h2 id="add-title">Nuovo contatto</h2><button class="px" onclick="closeAll()">×</button></div>
+  <div class="pb">
+    <div class="fr">
+      <div><label>Nome *</label><input id="f-nome" type="text" /></div>
+      <div><label>Cognome *</label><input id="f-cognome" type="text" /></div>
+    </div>
+    <div class="fr">
+      <div><label>Categoria</label><select id="f-cat"><option>Lead</option><option>Cliente</option><option>Influencer</option><option>Dirigente scolastico</option><option>Professore</option><option>Dirigente pubblico</option><option>Altro</option></select></div>
+      <div><label>Stato</label><select id="f-status"><option value="caldo">Caldo</option><option value="tiepido">Tiepido</option><option value="freddo">Freddo</option><option value="attivo">Attivo</option><option value="inattivo">Inattivo</option></select></div>
+    </div>
+    <div class="fr">
+      <div><label>Organizzazione</label><input id="f-org" type="text" /></div>
+      <div><label>Ruolo</label><input id="f-ruolo" type="text" /></div>
+    </div>
+    <div class="fr">
+      <div><label>Email</label><input id="f-email" type="email" /></div>
+      <div><label>Telefono</label><input id="f-tel" type="tel" /></div>
+    </div>
+    <div class="fr">
+      <div><label>Città</label><input id="f-citta" type="text" /></div>
+      <div><label>Sito web</label><input id="f-web" type="text" /></div>
+    </div>
+    <div><label>Tag (premi Invio per aggiungere)</label><div class="tags-inp-wrap" id="tags-wrap" onclick="document.getElementById('tag-inp').focus()"><input id="tag-inp" class="tag-new" placeholder="es. istruzione, VR, bando..." /></div></div>
+    <div><label>Note</label><textarea id="f-note"></textarea></div>
+  </div>
+  <div class="pf"><button class="btn" onclick="closeAll()">Annulla</button><button class="btn btn-g" onclick="saveContact()">Salva contatto</button></div>
+</div>
+</div>
+
+<div class="ov" id="ov-act">
+<div class="panel">
+  <div class="ph"><h2 id="act-panel-title">Storico attività</h2><button class="px" onclick="closeAll()">×</button></div>
+  <div class="pb" id="act-panel-body"></div>
+</div>
+</div>
+
+<div class="ov" id="ov-rem">
+<div class="panel">
+  <div class="ph"><h2>Nuovo promemoria</h2><button class="px" onclick="closeAll()">×</button></div>
+  <div class="pb">
+    <div><label>Contatto</label><select id="rem-contact-sel" style="font-size:13px;width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text)"></select></div>
+    <div><label>Titolo *</label><input id="rem-title" type="text" placeholder="es. Follow-up demo VR" /></div>
+    <div class="fr">
+      <div><label>Data</label><input id="rem-date" type="date" /></div>
+      <div><label>Ora</label><input id="rem-time" type="time" value="09:00" /></div>
+    </div>
+    <div><label>Note</label><textarea id="rem-note" placeholder="Dettagli o obiettivo..."></textarea></div>
+  </div>
+  <div class="pf"><button class="btn" onclick="closeAll()">Annulla</button><button class="btn btn-g" onclick="saveReminder()">Salva promemoria</button></div>
+</div>
+</div>
+
+<div class="ov" id="ov-import">
+<div class="panel">
+  <div class="ph"><h2>Importa contatti da CSV</h2><button class="px" onclick="closeAll()">×</button></div>
+  <div class="pb">
+    <p style="font-size:12px;color:var(--text2);line-height:1.7">Colonne attese: <code>nome, cognome, categoria, organizzazione, ruolo, email, telefono, città, stato, tag(separati da ;), note</code></p>
+    <div class="import-zone" onclick="document.getElementById('csv-inp').click()">
+      Clicca o trascina qui il file CSV
+      <input type="file" id="csv-inp" accept=".csv" style="display:none" onchange="handleCSV(this)" />
+    </div>
+    <div id="import-prev" style="font-size:13px;color:var(--text);margin-top:8px"></div>
+  </div>
+  <div class="pf"><button class="btn" onclick="closeAll()">Annulla</button><button class="btn btn-g" id="confirm-imp" style="display:none" onclick="doImport()">Importa</button></div>
+</div>
+</div>
+
+<script>
+const STORE='exlea_crm_v3';
+const CAV={'Lead':['#FAEEDA','#854F0B'],'Cliente':['#E1F5EE','#0F6E56'],'Influencer':['#EEEDFE','#3C3489'],'Dirigente scolastico':['#E6F1FB','#0C447C'],'Professore':['#EAF3DE','#3B6D11'],'Dirigente pubblico':['#FAECE7','#993C1D'],'Altro':['#F1EFE8','#5F5E5A']};
+const CATS=['Tutti','Lead','Cliente','Influencer','Dirigente scolastico','Professore','Dirigente pubblico','Altro'];
+const STATI=['caldo','tiepido','freddo','attivo','inattivo'];
+const AICO={email:'✉',call:'📞',note:'📝',meeting:'📅'};
+const DEFAULT_C=[
+  {id:1,nome:'Roberto',cognome:'Napolitano',cat:'Cliente',org:'Exlea S.R.L.',ruolo:'Amministratore Unico',email:'studiorobertonapolitano@pec.it',tel:'',citta:'Padova',web:'',status:'attivo',tags:['fondatore'],note:'AU della società.',date:'2024-01-01',activities:[{type:'meeting',title:'Riunione fondatori',desc:'Kick-off',ts:'2024-01-15'}]},
+  {id:2,nome:'Marco',cognome:'Bianchi',cat:'Dirigente scolastico',org:'ITIS Galilei Padova',ruolo:'Dirigente scolastico',email:'m.bianchi@galilei.edu.it',tel:'+39 049 123456',citta:'Padova',web:'',status:'caldo',tags:['istruzione','VR'],note:'Demo programmata.',date:'2025-03-10',activities:[{type:'call',title:'Primo contatto',desc:'Interesse per licenza VR',ts:'2025-03-10'},{type:'email',title:'Brochure inviata',desc:'',ts:'2025-03-12'}]},
+  {id:3,nome:'Laura',cognome:'Conti',cat:'Lead',org:'Liceo Einstein Vicenza',ruolo:'Referente digitale',email:'l.conti@einstein.edu.it',tel:'+39 0444 987654',citta:'Vicenza',web:'',status:'tiepido',tags:['fiera','didacta'],note:'Incontrata a Didacta.',date:'2025-02-20',activities:[{type:'meeting',title:'Stand Didacta',desc:'Brochure consegnata',ts:'2025-02-20'}]},
+  {id:4,nome:'Giampaolo',cognome:'Parravicini',cat:'Cliente',org:'Socio Exlea',ruolo:'Socio',email:'',tel:'',citta:'Montesegale',web:'',status:'attivo',tags:['socio'],note:'Quota €38.700.',date:'2024-06-01',activities:[]},
+  {id:5,nome:'Alessia',cognome:'Ferretti',cat:'Influencer',org:'EdTech Italia',ruolo:'Content creator',email:'alessia@edtechitalia.com',tel:'',citta:'Milano',web:'edtechitalia.com',status:'tiepido',tags:['linkedin','edtech'],note:'50k follower. Proposta in corso.',date:'2025-01-15',activities:[{type:'email',title:'Proposta collaborazione',desc:'',ts:'2025-01-15'}]},
+  {id:6,nome:'Giovanni',cognome:'Russo',cat:'Dirigente pubblico',org:'Regione Veneto',ruolo:'Dir. area istruzione',email:'g.russo@regione.veneto.it',tel:'+39 049 654321',citta:'Venezia',web:'',status:'freddo',tags:['bando','formazione'],note:'Potenziale bando.',date:'2024-11-05',activities:[{type:'meeting',title:'Incontro istituzionale',desc:'Presentazione Exlea',ts:'2024-11-05'}]},
+  {id:7,nome:'Chiara',cognome:'Mele',cat:'Professore',org:'ITIS Rossi Vicenza',ruolo:"Prof.ssa elettronica",email:'c.mele@itisrossi.edu.it',tel:'',citta:'Vicenza',web:'',status:'caldo',tags:['pilota','VR','feedback'],note:'Test in classe positivo.',date:'2025-03-01',activities:[{type:'email',title:'Credenziali inviate',desc:'',ts:'2025-03-01'},{type:'note',title:'Feedback positivo',desc:'Classe molto coinvolta',ts:'2025-03-07'}]},
+  {id:8,nome:'Roberto',cognome:'Race',cat:'Cliente',org:'Socio Exlea',ruolo:'Socio',email:'',tel:'',citta:'Napoli',web:'',status:'attivo',tags:['socio'],note:'Quota €24.750.',date:'2024-06-01',activities:[]},
+  {id:9,nome:'Federica',cognome:'Longo',cat:'Lead',org:'Scuola Media Manzoni',ruolo:'Ref. tecnologia',email:'f.longo@manzoni.edu.it',tel:'+39 051 112233',citta:'Bologna',web:'',status:'freddo',tags:['budget'],note:'Ricontattare autunno.',date:'2024-09-12',activities:[{type:'call',title:'Prima chiamata',desc:'Budget esaurito',ts:'2024-09-12'}]},
+];
+const DEFAULT_R=[
+  {id:101,contactId:2,title:'Demo piattaforma VR',date:'2025-03-20',time:'10:00',note:'Preparare laptop + visore Pico',done:false},
+  {id:102,contactId:3,title:'Follow-up post Didacta',date:'2025-03-15',time:'09:00',note:'Inviare preventivo personalizzato',done:false},
+  {id:103,contactId:6,title:'Verifica bando regionale',date:'2025-04-10',time:'11:00',note:'Controllare apertura bandi formazione',done:false},
+  {id:104,contactId:9,title:'Ricontatto autunnale',date:'2025-09-01',time:'09:00',note:'Budget scolastico nuovo anno',done:false},
+];
+
+let state={contacts:[],reminders:[]};
+let editId=null,currentTags=[],currentActId=null,currentActType='email',pendingImport=[];
+let charts={},activeView='dashboard',activeCat='Tutti';
+
+function loadState(){
+  try{const s=localStorage.getItem(STORE);if(s){state=JSON.parse(s);return;}}catch(e){}
+  state={contacts:DEFAULT_C.map(c=>({...c,activities:[...(c.activities||[])]})),reminders:[...DEFAULT_R]};
+}
+function saveState(){
+  try{localStorage.setItem(STORE,JSON.stringify(state));const b=document.getElementById('saved-badge');b.style.display='inline-block';setTimeout(()=>b.style.display='none',1800);}catch(e){}
+}
+
+function ini(n,c){return(n[0]+(c[0]||'')).toUpperCase()}
+function avStyle(cat){const c=CAV[cat]||CAV['Altro'];return`background:${c[0]};color:${c[1]}`}
+function badgeCls(cat){return'badge b-'+cat.replace(/\s+/g,'-')}
+function fmtDate(ts){try{return new Date(ts).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});}catch(e){return ts;}}
+function fmtShort(ts){try{const d=new Date(ts);return{day:d.getDate(),mon:d.toLocaleDateString('it-IT',{month:'short'})};}catch(e){return{day:'?',mon:''};}}
+
+function goView(v){
+  activeView=v;
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  const labels={dashboard:'Dashboard',contacts:'Contatti',reminders:'Promemoria',gmail:'Gmail'};
+  document.querySelectorAll('.nav-tab').forEach(el=>{if(el.textContent.trim().startsWith(labels[v]))el.classList.add('active');});
+  if(v==='dashboard')renderDashboard();
+  if(v==='contacts')renderContacts();
+  if(v==='reminders')renderReminders();
+}
+
+function renderDashboard(){
+  const c=state.contacts,r=state.reminders;
+  const caldi=c.filter(x=>x.status==='caldo').length;
+  const leads=c.filter(x=>x.cat==='Lead').length;
+  const scuole=c.filter(x=>['Dirigente scolastico','Professore'].includes(x.cat)).length;
+  const totAct=c.reduce((s,x)=>s+(x.activities||[]).length,0);
+  const pending=r.filter(x=>!x.done).length;
+  document.getElementById('kpi-grid').innerHTML=`
+    <div class="kpi"><div class="kpi-label">Contatti totali</div><div class="kpi-val">${c.length}</div></div>
+    <div class="kpi"><div class="kpi-label">Lead</div><div class="kpi-val">${leads}</div></div>
+    <div class="kpi"><div class="kpi-label">Istituti scolastici</div><div class="kpi-val">${scuole}</div></div>
+    <div class="kpi"><div class="kpi-label">Contatti caldi</div><div class="kpi-val">${caldi}<span style="font-size:14px;font-weight:400;margin-left:4px;color:var(--text2)">/ ${c.length}</span></div></div>
+    <div class="kpi"><div class="kpi-label">Attività registrate</div><div class="kpi-val">${totAct}</div></div>
+    <div class="kpi"><div class="kpi-label">Promemoria aperti</div><div class="kpi-val">${pending}</div></div>
+  `;
+  renderCharts();
+  const today=new Date().toISOString().slice(0,10);
+  const upcoming=r.filter(x=>!x.done).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,5);
+  document.getElementById('dash-reminders').innerHTML=upcoming.length?upcoming.map(rem=>{
+    const con=c.find(x=>x.id===rem.contactId);
+    const ov=rem.date<today,tod=rem.date===today;
+    const cls=ov?'overdue':tod?'today-b':'future-b';
+    const label=ov?'Scaduto':tod?'Oggi':'In arrivo';
+    return`<div class="rem-row"><span class="rem-badge ${cls}">${label} · ${fmtDate(rem.date)}</span><div class="rem-info"><div class="rem-title">${rem.title}</div><div class="rem-contact">${con?con.nome+' '+con.cognome:'—'}</div></div><button class="done-btn" onclick="doneRem(${rem.id})">Fatto</button></div>`;
+  }).join(''):'<p style="font-size:13px;color:var(--text2)">Nessun promemoria in attesa.</p>';
+}
+
+function renderCharts(){
+  const c=state.contacts;
+  const catLabels=CATS.slice(1);
+  const catData=catLabels.map(cat=>c.filter(x=>x.cat===cat).length);
+  const catColors=['#BA7517','#1D9E75','#534AB7','#185FA5','#639922','#D85A30','#888780'];
+  if(charts.cat)charts.cat.destroy();
+  charts.cat=new Chart(document.getElementById('chart-cat').getContext('2d'),{type:'doughnut',data:{labels:catLabels,datasets:[{data:catData,backgroundColor:catColors,borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12,padding:8}}}}});
+  const statiL=['Caldo','Tiepido','Freddo','Attivo','Inattivo'];
+  const statiData=statiL.map(s=>c.filter(x=>x.status===s.toLowerCase()).length);
+  const statiC=['#1D9E75','#EF9F27','#D85A30','#185FA5','#888780'];
+  if(charts.status)charts.status.destroy();
+  charts.status=new Chart(document.getElementById('chart-status').getContext('2d'),{type:'bar',data:{labels:statiL,datasets:[{data:statiData,backgroundColor:statiC,borderWidth:0,borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1,font:{size:11}},grid:{color:'rgba(128,128,128,.1)'}},x:{ticks:{font:{size:11}},grid:{display:false}}}}});
+  const months=['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+  const actByMonth=Array(12).fill(0);
+  const yr=new Date().getFullYear();
+  c.forEach(x=>(x.activities||[]).forEach(a=>{try{const d=new Date(a.ts);if(d.getFullYear()===yr)actByMonth[d.getMonth()]++;}catch(e){}}));
+  if(charts.act)charts.act.destroy();
+  charts.act=new Chart(document.getElementById('chart-act').getContext('2d'),{type:'line',data:{labels:months,datasets:[{data:actByMonth,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,.1)',tension:.35,fill:true,pointRadius:4,pointBackgroundColor:'#1D9E75',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1,font:{size:11}},grid:{color:'rgba(128,128,128,.1)'}},x:{ticks:{font:{size:11}},grid:{display:false}}}}});
+}
+
+function renderContacts(){
+  const q=(document.getElementById('search')?.value||'').toLowerCase();
+  const s=document.getElementById('sort')?.value||'name';
+  const totals={'Tutti':state.contacts.length};
+  CATS.slice(1).forEach(c=>{totals[c]=state.contacts.filter(x=>x.cat===c).length;});
+  document.getElementById('cat-row').innerHTML=CATS.map(c=>`<div class="ctab${activeCat===c?' active':''}" data-c="${c}" onclick="setCat('${c}')">${c} <span style="opacity:.6">${totals[c]||0}</span></div>`).join('');
+  document.getElementById('cnt-badge').textContent=`(${state.contacts.length})`;
+  let list=state.contacts.filter(c=>{
+    if(activeCat!=='Tutti'&&c.cat!==activeCat)return false;
+    if(q&&!`${c.nome} ${c.cognome} ${c.org} ${c.email} ${c.citta} ${(c.tags||[]).join(' ')}`.toLowerCase().includes(q))return false;
+    return true;
+  });
+  if(s==='name')list.sort((a,b)=>(a.cognome+a.nome).localeCompare(b.cognome+b.nome));
+  else if(s==='recent')list.sort((a,b)=>b.date.localeCompare(a.date));
+  else if(s==='status')list.sort((a,b)=>STATI.indexOf(a.status)-STATI.indexOf(b.status));
+  document.getElementById('cards-grid').innerHTML=list.length?list.map(c=>`
+    <div class="card">
+      <div class="card-head">
+        <div class="av" style="${avStyle(c.cat)}">${ini(c.nome,c.cognome)}</div>
+        <div style="flex:1;min-width:0"><div class="cname">${c.nome} ${c.cognome}</div><div class="crole">${c.ruolo||c.org||'—'}</div></div>
+        <div class="${badgeCls(c.cat)}">${c.cat}</div>
+      </div>
+      <div class="cmeta">
+        ${c.org?`<div class="crow"><span class="lbl">Ente</span><span class="val">${c.org}</span></div>`:''}
+        ${c.email?`<div class="crow"><span class="lbl">Email</span><span class="val" style="color:#185FA5">${c.email}</span></div>`:''}
+        ${c.tel?`<div class="crow"><span class="lbl">Tel</span><span class="val">${c.tel}</span></div>`:''}
+        ${c.citta?`<div class="crow"><span class="lbl">Città</span><span class="val">${c.citta}</span></div>`:''}
+        <div class="crow"><span class="lbl">Stato</span><span><span class="sdot s-${c.status}"></span>${c.status[0].toUpperCase()+c.status.slice(1)}</span></div>
+        ${(c.tags||[]).length?`<div class="crow"><span class="lbl">Tag</span><div class="tag-wrap">${c.tags.map(t=>`<span class="tpill">${t}</span>`).join('')}</div></div>`:''}
+        ${c.note?`<div class="crow" style="align-items:flex-start"><span class="lbl">Note</span><span class="val" style="white-space:normal">${c.note}</span></div>`:''}
+        <div class="crow"><span class="lbl"></span><span style="font-size:11px;color:var(--text3)">● ${(c.activities||[]).length} attività</span></div>
+      </div>
+      <div class="cactions">
+        <button class="ca" onclick="openActivity(${c.id})">Storico</button>
+        <button class="ca" onclick="openAddRem(${c.id})">Promemoria</button>
+        ${c.email?`<button class="ca gmail-btn" onclick="openGmailContact('${c.email}','${c.nome} ${c.cognome}','${c.cat}')">Gmail</button>`:''}
+        <button class="ca" onclick="openEdit(${c.id})">Modifica</button>
+        <button class="ca" onclick="delContact(${c.id})" title="Rimuovi">×</button>
+      </div>
+    </div>`).join(''):`<div class="empty-state">Nessun contatto trovato.</div>`;
+}
+function setCat(c){activeCat=c;renderContacts();}
+
+function renderReminders(){
+  const today=new Date().toISOString().slice(0,10);
+  const f=document.getElementById('rem-filter')?.value||'all';
+  let list=state.reminders.filter(r=>{
+    if(f==='pending')return!r.done;
+    if(f==='overdue')return!r.done&&r.date<today;
+    if(f==='done')return r.done;
+    return true;
+  }).sort((a,b)=>a.done-b.done||a.date.localeCompare(b.date));
+  const pending=state.reminders.filter(r=>!r.done).length;
+  const overdue=state.reminders.filter(r=>!r.done&&r.date<today).length;
+  const badge=document.getElementById('rem-badge');
+  badge.textContent=pending?`(${pending}${overdue?', '+overdue+' scad.':''})` :'';
+  badge.style.color=overdue?'#A32D2D':'';
+  document.getElementById('rem-list').innerHTML=list.length?list.map(rem=>{
+    const con=state.contacts.find(x=>x.id===rem.contactId);
+    const ov=!rem.done&&rem.date<today,tod=!rem.done&&rem.date===today;
+    const s=fmtShort(rem.date);
+    return`<div class="rem-item${rem.done?' is-done':''}${ov?' is-overdue':''}${tod?' is-today':''}">
+      <div class="rem-left"><div class="rem-day">${s.day}</div><div class="rem-mon">${s.mon}</div></div>
+      <div class="rem-body">
+        <div class="rem-ttl">${rem.title}${ov?' <span style="font-size:11px;color:#A32D2D;margin-left:6px">Scaduto</span>':''}${tod?' <span style="font-size:11px;color:#854F0B;margin-left:6px">Oggi</span>':''}</div>
+        <div class="rem-cname">${con?con.nome+' '+con.cognome+' · '+con.cat:'—'} · ${rem.time||''}</div>
+        ${rem.note?`<div class="rem-note">${rem.note}</div>`:''}
+      </div>
+      <div class="rem-actions">
+        ${!rem.done?`<button class="done-btn" onclick="doneRem(${rem.id})">Fatto</button>`:'<span style="font-size:12px;color:var(--text3)">✓</span>'}
+        <button class="done-btn" onclick="delRem(${rem.id})">×</button>
+      </div>
+    </div>`;
+  }).join(''):'<p style="font-size:13px;color:var(--text2);text-align:center;padding:2rem">Nessun promemoria in questa categoria.</p>';
+}
+function doneRem(id){const r=state.reminders.find(x=>x.id===id);if(r){r.done=true;saveState();renderReminders();if(activeView==='dashboard')renderDashboard();}}
+function delRem(id){state.reminders=state.reminders.filter(x=>x.id!==id);saveState();renderReminders();if(activeView==='dashboard')renderDashboard();}
+function openAddRem(contactId){
+  const sel=document.getElementById('rem-contact-sel');
+  sel.innerHTML=state.contacts.map(c=>`<option value="${c.id}">${c.nome} ${c.cognome} — ${c.cat}</option>`).join('');
+  if(contactId)sel.value=contactId;
+  const td=new Date();td.setDate(td.getDate()+7);
+  document.getElementById('rem-date').value=td.toISOString().slice(0,10);
+  document.getElementById('rem-title').value='';
+  document.getElementById('rem-note').value='';
+  document.getElementById('ov-rem').classList.add('open');
+}
+function saveReminder(){
+  const title=document.getElementById('rem-title').value.trim();
+  const date=document.getElementById('rem-date').value;
+  if(!title||!date){alert('Titolo e data sono obbligatori.');return;}
+  state.reminders.push({id:Date.now(),contactId:parseInt(document.getElementById('rem-contact-sel').value),title,date,time:document.getElementById('rem-time').value,note:document.getElementById('rem-note').value.trim(),done:false});
+  saveState();closeAll();renderReminders();if(activeView==='dashboard')renderDashboard();
+}
+
+function openAdd(){
+  editId=null;currentTags=[];
+  document.getElementById('add-title').textContent='Nuovo contatto';
+  ['f-nome','f-cognome','f-org','f-ruolo','f-email','f-tel','f-citta','f-web','f-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-cat').value='Lead';document.getElementById('f-status').value='tiepido';
+  renderTagsWrap();document.getElementById('ov-add').classList.add('open');
+}
+function openEdit(id){
+  const c=state.contacts.find(x=>x.id===id);if(!c)return;
+  editId=id;currentTags=[...(c.tags||[])];
+  document.getElementById('add-title').textContent='Modifica contatto';
+  document.getElementById('f-nome').value=c.nome;document.getElementById('f-cognome').value=c.cognome;
+  document.getElementById('f-org').value=c.org||'';document.getElementById('f-ruolo').value=c.ruolo||'';
+  document.getElementById('f-email').value=c.email||'';document.getElementById('f-tel').value=c.tel||'';
+  document.getElementById('f-citta').value=c.citta||'';document.getElementById('f-web').value=c.web||'';
+  document.getElementById('f-note').value=c.note||'';
+  document.getElementById('f-cat').value=c.cat;document.getElementById('f-status').value=c.status;
+  renderTagsWrap();document.getElementById('ov-add').classList.add('open');
+}
+function renderTagsWrap(){
+  const wrap=document.getElementById('tags-wrap');const inp=document.getElementById('tag-inp');
+  wrap.innerHTML='';
+  currentTags.forEach((t,i)=>{const chip=document.createElement('div');chip.className='tchip';chip.innerHTML=`${t}<button onclick="rmTag(${i})">×</button>`;wrap.appendChild(chip);});
+  inp.value='';wrap.appendChild(inp);
+}
+function rmTag(i){currentTags.splice(i,1);renderTagsWrap();}
+document.addEventListener('keydown',e=>{
+  if(e.target.id==='tag-inp'&&(e.key==='Enter'||e.key===',')){
+    e.preventDefault();const v=e.target.value.trim().replace(/,$/,'');
+    if(v&&!currentTags.includes(v)){currentTags.push(v);renderTagsWrap();}
+  }
+});
+function saveContact(){
+  const nome=document.getElementById('f-nome').value.trim();const cognome=document.getElementById('f-cognome').value.trim();
+  if(!nome||!cognome){alert('Nome e cognome sono obbligatori.');return;}
+  const data={nome,cognome,cat:document.getElementById('f-cat').value,org:document.getElementById('f-org').value.trim(),ruolo:document.getElementById('f-ruolo').value.trim(),email:document.getElementById('f-email').value.trim(),tel:document.getElementById('f-tel').value.trim(),citta:document.getElementById('f-citta').value.trim(),web:document.getElementById('f-web').value.trim(),status:document.getElementById('f-status').value,tags:[...currentTags],note:document.getElementById('f-note').value.trim(),date:new Date().toISOString().slice(0,10)};
+  if(editId){const idx=state.contacts.findIndex(c=>c.id===editId);if(idx>-1)state.contacts[idx]={...state.contacts[idx],...data};}
+  else state.contacts.push({id:Date.now(),activities:[],...data});
+  saveState();closeAll();if(activeView==='contacts')renderContacts();else renderDashboard();
+}
+function delContact(id){if(!confirm('Rimuovere questo contatto?'))return;state.contacts=state.contacts.filter(c=>c.id!==id);saveState();renderContacts();renderDashboard();}
+
+function openActivity(id){
+  currentActId=id;currentActType='email';
+  const c=state.contacts.find(x=>x.id===id);
+  document.getElementById('act-panel-title').textContent=`Storico — ${c.nome} ${c.cognome}`;
+  renderActPanel(c);document.getElementById('ov-act').classList.add('open');
+}
+function renderActPanel(c){
+  const acts=[...(c.activities||[])].reverse();
+  const actsHtml=acts.length?acts.map(a=>`<div class="act-item"><div class="aico ${a.type}">${AICO[a.type]||'📌'}</div><div class="abody"><div class="atitle">${a.title}</div><div class="atime">${fmtDate(a.ts)}</div>${a.desc?`<div class="adesc">${a.desc}</div>`:''}</div></div>`).join(''):'<p style="font-size:13px;color:var(--text2);padding:.5rem 0">Nessuna attività registrata.</p>';
+  document.getElementById('act-panel-body').innerHTML=`
+    <div class="act-list">${actsHtml}</div>
+    <div style="display:flex;flex-direction:column;gap:9px;border-top:1px solid var(--border);padding-top:13px;margin-top:4px">
+      <p style="font-size:13px;font-weight:500;color:var(--text)">Registra nuova attività</p>
+      <div class="act-type-row">${['email','call','meeting','note'].map(t=>`<button class="atbtn${currentActType===t?' sel':''}" onclick="setActType('${t}')">${AICO[t]} ${t}</button>`).join('')}</div>
+      <input id="act-title-inp" type="text" placeholder="Titolo attività" style="font-size:13px;width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text)" />
+      <textarea id="act-desc-inp" placeholder="Descrizione (opzionale)..." style="font-size:12px;width:100%;min-height:60px;padding:7px 10px;border:1px solid var(--border2);border-radius:var(--rad);background:var(--bg);color:var(--text);font-family:inherit;resize:vertical"></textarea>
+      <button class="btn btn-g" onclick="addAct()" style="align-self:flex-start">Registra attività</button>
+    </div>`;
+}
+function setActType(t){currentActType=t;const c=state.contacts.find(x=>x.id===currentActId);renderActPanel(c);}
+function addAct(){
+  const title=document.getElementById('act-title-inp').value.trim();
+  if(!title){alert('Inserisci un titolo.');return;}
+  const c=state.contacts.find(x=>x.id===currentActId);
+  if(!c.activities)c.activities=[];
+  c.activities.push({type:currentActType,title,desc:document.getElementById('act-desc-inp').value.trim(),ts:new Date().toISOString()});
+  saveState();renderActPanel(c);if(activeView==='contacts')renderContacts();else renderDashboard();
+}
+
+let gmailToken=null;
+
+function startGmailOAuth(){
+  const cid=document.getElementById('gmail-client-id').value.trim();
+  if(!cid){showGmailError('Incolla prima il Client ID Google.');return;}
+  localStorage.setItem('exlea_gmail_cid',cid);
+  const redirectUri=window.location.origin+window.location.pathname;
+  const scope='https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile';
+  const url=`https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(cid)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}&prompt=select_account`;
+  const popup=window.open(url,'gmail_oauth','width=500,height=620,left=200,top=100');
+  const timer=setInterval(()=>{
+    try{
+      if(popup.closed){clearInterval(timer);return;}
+      const hash=popup.location.hash;
+      if(hash&&hash.includes('access_token')){
+        clearInterval(timer);popup.close();
+        const params=new URLSearchParams(hash.slice(1));
+        gmailToken=params.get('access_token');
+        localStorage.setItem('exlea_gmail_token',gmailToken);
+        hideGmailError();
+        fetchGmailUserInfo();
+      }
+    }catch(e){}
+  },500);
+}
+
+function fetchGmailUserInfo(){
+  fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+gmailToken}})
+    .then(r=>r.json()).then(u=>{
+      document.getElementById('gmail-step-1').style.display='none';
+      document.getElementById('gmail-step-connected').style.display='block';
+      document.getElementById('gmail-user-name').textContent=u.name||'Utente Google';
+      document.getElementById('gmail-user-email').textContent=u.email||'';
+      document.getElementById('gmail-user-avatar').textContent=(u.name||'G')[0].toUpperCase();
+      loadGmailMessages();
+    }).catch(()=>showGmailError('Errore nel recupero del profilo. Riprova.'));
+}
+
+function loadGmailMessages(){
+  document.getElementById('gmail-messages-list').innerHTML='<div style="text-align:center;color:var(--text2);font-size:13px;padding:1rem">Caricamento email...</div>';
+  const emails=state.contacts.map(c=>c.email).filter(Boolean);
+  const query=emails.map(e=>'from:'+e).join(' OR ');
+  fetch(`https://www.googleapis.com/gmail/v1/users/me/messages?maxResults=15&q=${encodeURIComponent(query)}`,{headers:{Authorization:'Bearer '+gmailToken}})
+    .then(r=>r.json()).then(data=>{
+      if(!data.messages||!data.messages.length){
+        document.getElementById('gmail-messages-list').innerHTML='<div style="text-align:center;color:var(--text2);font-size:13px;padding:1.5rem">Nessuna email trovata dai tuoi contatti CRM.</div>';
+        return;
+      }
+      Promise.all(data.messages.slice(0,8).map(m=>
+        fetch(`https://www.googleapis.com/gmail/v1/users/me/messages/${m.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`,{headers:{Authorization:'Bearer '+gmailToken}}).then(r=>r.json())
+      )).then(msgs=>{
+        document.getElementById('gmail-messages-list').innerHTML=msgs.map(msg=>{
+          const h=msg.payload?.headers||[];
+          const get=n=>h.find(x=>x.name===n)?.value||'';
+          const from=get('From'),subj=get('Subject'),date=get('Date');
+          const emailMatch=from.match(/<(.+)>/);
+          const emailAddr=emailMatch?emailMatch[1]:from;
+          const nameMatch=from.match(/^([^<]+)</);
+          const senderName=nameMatch?nameMatch[1].trim():emailAddr;
+          const con=state.contacts.find(c=>c.email&&emailAddr.toLowerCase().includes(c.email.toLowerCase()));
+          const snippet=msg.snippet||'';
+          return`<div class="demo-email" style="cursor:pointer" onclick="logGmailMsg(${msg.id},'${subj.replace(/'/g,"\\'")}','${senderName.replace(/'/g,"\\'")}','${emailAddr}')">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+              <div class="demo-from">${senderName} ${con?`<span style="font-size:11px;background:#E1F5EE;color:#0F6E56;padding:1px 6px;border-radius:99px;margin-left:4px">CRM</span>`:''}</div>
+              <span style="font-size:11px;color:var(--text3)">${new Date(date).toLocaleDateString('it-IT',{day:'2-digit',month:'short'})}</span>
+            </div>
+            <div class="demo-subj">${subj}</div>
+            <div class="demo-snip">${snippet.slice(0,120)}...</div>
+            <div style="font-size:11px;color:#185FA5;margin-top:4px">Clicca per loggare nello storico contatto</div>
+          </div>`;
+        }).join('');
+      });
+    }).catch(e=>{
+      if(e.message&&e.message.includes('401')){gmailToken=null;showGmailError('Sessione scaduta. Accedi di nuovo.');}
+      else document.getElementById('gmail-messages-list').innerHTML='<div style="color:#A32D2D;font-size:13px;padding:1rem">Errore nel caricamento email. Verifica che la Gmail API sia abilitata.</div>';
+    });
+}
+
+function logGmailMsg(msgId,subject,senderName,emailAddr){
+  const con=state.contacts.find(c=>c.email&&emailAddr.toLowerCase().includes(c.email.toLowerCase()));
+  if(!con){alert('Contatto non trovato nel CRM per '+emailAddr);return;}
+  if(!con.activities)con.activities=[];
+  if(con.activities.find(a=>a.title===subject)){alert('Email già loggata nello storico.');return;}
+  con.activities.push({type:'email',title:subject,desc:'Email ricevuta da '+senderName,ts:new Date().toISOString()});
+  saveState();
+  alert('Email loggata nello storico di '+con.nome+' '+con.cognome+'!');
+}
+
+function gmailLogout(){
+  gmailToken=null;localStorage.removeItem('exlea_gmail_token');
+  document.getElementById('gmail-step-1').style.display='block';
+  document.getElementById('gmail-step-connected').style.display='none';
+  document.getElementById('gmail-demo-list').innerHTML='';
+}
+
+function showGmailError(msg){const el=document.getElementById('gmail-error');el.textContent=msg;el.style.display='block';}
+function hideGmailError(){const el=document.getElementById('gmail-error');el.style.display='none';}
+
+function openGmailContact(email,name,cat){
+  goView('gmail');
+  const savedToken=localStorage.getItem('exlea_gmail_token');
+  const savedCid=localStorage.getItem('exlea_gmail_cid');
+  if(savedCid)document.getElementById('gmail-client-id').value=savedCid;
+  if(savedToken){gmailToken=savedToken;fetchGmailUserInfo();}
+}
+
+const DEMO_EMAILS=[
+  {from:'m.bianchi@galilei.edu.it',name:'Marco Bianchi',subject:'Re: Demo piattaforma VR',snippet:'Siamo molto interessati. Quando possiamo fissare la demo?',date:'12 mar 2025'},
+  {from:'c.mele@itisrossi.edu.it',name:'Chiara Mele',subject:'Feedback studenti settimana 1',snippet:'Gli studenti sono entusiasti! Qualche bug da segnalare...',date:'7 mar 2025'},
+  {from:'alessia@edtechitalia.com',name:'Alessia Ferretti',subject:'Proposta contenuto sponsorizzato',snippet:'Ho letto la proposta, mi interessa. Possiamo parlarne?',date:'20 gen 2025'},
+];
+function showGmailDemo(){
+  document.getElementById('gmail-demo-list').innerHTML=`
+    <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:.85rem;padding-top:1rem;border-top:1px solid var(--border)">Modalità demo — email simulate</div>
+    ${DEMO_EMAILS.map(e=>`<div class="demo-email"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px"><div class="demo-from">${e.name} <span style="font-weight:400;color:var(--text2);font-size:12px">&lt;${e.from}&gt;</span></div><span style="font-size:11px;color:var(--text3)">${e.date}</span></div><div class="demo-subj">${e.subject}</div><div class="demo-snip">${e.snippet}</div></div>`).join('')}`;
+}
+
+// Ripristina sessione Gmail se già loggato
+window.addEventListener('load',()=>{
+  const savedToken=localStorage.getItem('exlea_gmail_token');
+  const savedCid=localStorage.getItem('exlea_gmail_cid');
+  if(savedCid)document.getElementById('gmail-client-id').value=savedCid;
+  if(savedToken){gmailToken=savedToken;}
+});
+
+function openImport(){pendingImport=[];document.getElementById('import-prev').innerHTML='';document.getElementById('confirm-imp').style.display='none';document.getElementById('ov-import').classList.add('open');}
+function handleCSV(inp){
+  const file=inp.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const lines=e.target.result.split('\n').filter(l=>l.trim());
+    const start=lines[0].toLowerCase().includes('nome')?1:0;
+    pendingImport=lines.slice(start).map(l=>{const p=l.split(',').map(s=>s.trim().replace(/^"|"$/g,''));return{id:Date.now()+Math.random(),nome:p[0]||'',cognome:p[1]||'',cat:p[2]||'Lead',org:p[3]||'',ruolo:p[4]||'',email:p[5]||'',tel:p[6]||'',citta:p[7]||'',status:p[8]||'tiepido',tags:p[9]?p[9].split(';').map(t=>t.trim()):[],note:p[10]||'',date:new Date().toISOString().slice(0,10),activities:[]};}).filter(c=>c.nome||c.cognome);
+    document.getElementById('import-prev').innerHTML=`<strong>${pendingImport.length}</strong> contatti trovati nel file.`;
+    document.getElementById('confirm-imp').style.display='inline-flex';
+  };
+  reader.readAsText(file);
+}
+function doImport(){state.contacts=[...state.contacts,...pendingImport];saveState();closeAll();renderContacts();renderDashboard();alert(`${pendingImport.length} contatti importati con successo.`);}
+
+function exportCSV(){
+  const rows=[['Nome','Cognome','Categoria','Organizzazione','Ruolo','Email','Telefono','Città','Stato','Tag','Note']];
+  state.contacts.forEach(c=>rows.push([c.nome,c.cognome,c.cat,c.org,c.ruolo,c.email,c.tel,c.citta,c.status,(c.tags||[]).join(';'),c.note]));
+  const csv=rows.map(r=>r.map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);a.download='exlea_crm_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+}
+
+function closeAll(){document.querySelectorAll('.ov').forEach(o=>o.classList.remove('open'));}
+document.querySelectorAll('.ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeAll();}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll();});
+
+loadState();
+renderDashboard();
+renderReminders();
+</script>
+</body>
+</html>
